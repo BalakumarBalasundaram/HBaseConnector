@@ -1,0 +1,70 @@
+object Test2 extends RecommConf{
+ def main(args: Array[String]): Unit = {
+       val exportType = args(1)
+        val startDate = new Date().getTime();
+
+       exportType match{
+           case "1" =>  queryHbaseRowFilter("forum:thread_info")
+           case "2" => queryRowBySpark("forum:thread_info")
+
+         }
+    
+        
+        val endDate = new Date().getTime();
+        
+        
+        
+        
+        println("hbase cost time:"+((endDate - startDate)/1000))
+        
+     
+    
+  }
+ 
+ /**
+   * 查看rowkey以什么结尾,通过rowfilter
+   */
+  def queryHbaseRowFilter(tableName:String)={
+    val scan = new Scan()
+    
+    val filter = new SingleColumnValueFilter(Bytes.toBytes(CommonConf.COLFAMILY),Bytes.toBytes("created_at"),CompareFilter.CompareOp.EQUAL,new SubstringComparator("2015"));
+    
+    scan.setFilter(filter)
+    hbaseConf.set(TableInputFormat.INPUT_TABLE, tableName) 
+    hbaseConf.set(TableInputFormat.SCAN,convertScanToString(scan))     
+    
+    var hbaseRDD = sc.newAPIHadoopRDD(hbaseConf, classOf[TableInputFormat],    
+		      classOf[org.apache.hadoop.hbase.io.ImmutableBytesWritable],    
+		      classOf[org.apache.hadoop.hbase.client.Result])
+    
+    val result = hbaseRDD.count()
+    
+    println("result:"+result)
+  }
+  
+  /**
+   * 通过spark查询列值
+   */
+  def queryRowBySpark(tableName:String)={
+    hbaseConf.set(TableInputFormat.INPUT_TABLE, tableName)
+    var hbaseRDD = sc.newAPIHadoopRDD(hbaseConf, classOf[TableInputFormat],    
+		      classOf[org.apache.hadoop.hbase.io.ImmutableBytesWritable],    
+		      classOf[org.apache.hadoop.hbase.client.Result])
+    val resultRDD = hbaseRDD.filter(f=>{
+              val isFirst = Bytes.toString(f._2.getValue(Bytes.toBytes(CommonConf.COLFAMILY), Bytes.toBytes("created_at")))
+              isFirst !=null && isFirst.contains("2015")
+    })
+    
+    val result = resultRDD.count()
+    
+    println("spark result:"+result)
+  }
+  
+     /**
+   * 将scan转化为string
+   */
+  def convertScanToString(scan: Scan) = {
+    val proto = ProtobufUtil.toScan(scan)
+    Base64.encodeBytes(proto.toByteArray)
+  } 
+}
