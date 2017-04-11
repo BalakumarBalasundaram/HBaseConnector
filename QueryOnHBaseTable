@@ -1,4 +1,4 @@
-object Test2 extends RecommConf{
+object Test2 {
  def main(args: Array[String]): Unit = {
        val exportType = args(1)
         val startDate = new Date().getTime();
@@ -8,22 +8,13 @@ object Test2 extends RecommConf{
            case "2" => queryRowBySpark("forum:thread_info")
 
          }
-    
-        
+   
         val endDate = new Date().getTime();
-        
-        
-        
-        
-        println("hbase cost time:"+((endDate - startDate)/1000))
-        
-     
-    
-  }
  
- /**
-   * 查看rowkey以什么结尾,通过rowfilter
-   */
+        println("hbase cost time:"+((endDate - startDate)/1000))
+   }
+ 
+
   def queryHbaseRowFilter(tableName:String)={
     val scan = new Scan()
     
